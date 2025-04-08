@@ -166,7 +166,18 @@ class RLHFDataset(Dataset):
 
         chat = row_dict.pop(self.prompt_key)
 
-        prompt_with_chat_template = self.tokenizer.apply_chat_template(chat, add_generation_prompt=True, tokenize=False)
+        # prompt_with_chat_template = self.tokenizer.apply_chat_template(chat, add_generation_prompt=True, tokenize=False)
+        def prompt_formatter(input_text: str) -> str:
+            """Hard-coded prompt template defined here"""
+            PROMPT_TEMPLATE = (
+                "<|im_start|>system\nYou are a helpful assistant.<|im_end|>\n"
+                "<|im_start|>user\n{input}\n"
+                "Please reason step by step, and put your final answer within \\boxed{{}}.<|im_end|>\n"
+                "<|im_start|>assistant\n"
+            )
+            input = PROMPT_TEMPLATE.format(input=input_text)
+            return input
+        prompt_with_chat_template = prompt_formatter(chat)
 
         is_multi_modal = self.image_key in row_dict
         if is_multi_modal:  # expand image token

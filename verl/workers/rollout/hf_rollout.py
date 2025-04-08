@@ -54,8 +54,8 @@ class HFRollout(BaseRollout):
         position_ids = prompts.batch['position_ids']
 
         # used to construct attention_mask
-        eos_token_id = prompts.meta_info['eos_token_id']
-        pad_token_id = prompts.meta_info['pad_token_id']
+        eos_token_id = 151643
+        pad_token_id = 151643
 
         batch_size = idx.size(0)
         prompt_length = idx.size(1)
