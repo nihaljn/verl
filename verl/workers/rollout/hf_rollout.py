@@ -28,8 +28,50 @@ from verl.utils.torch_functional import get_response_mask
 from .base import BaseRollout
 
 from transformers import GenerationConfig
+from transformers import AutoTokenizer, StoppingCriteria, StoppingCriteriaList
 
 __all__ = ['HFRollout']
+
+
+
+# Ref: https://github.com/QwenLM/Qwen2.5-Math/blob/main/evaluation/model_utils.py#L9
+class KeywordsStoppingCriteria(StoppingCriteria):
+    def __init__(self, keywords_str: list[str]):
+        StoppingCriteria.__init__(self)
+        self.current_context = []
+        self.tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen2.5-0.5B")
+        self.keywords_str = keywords_str
+        self.max_context_to_check = max(
+            len(self.tokenizer(word)["input_ids"])
+            for word in self.keywords_str
+        ) + 2 # some buffer
+
+    def reset(self):
+        self.current_context = []
+    
+    def __call__(self, input_ids: torch.LongTensor, scores: torch.FloatTensor, **kwargs) -> torch.Tensor:
+        if len(self.current_context) == 0:
+            self.current_context = [[] for _ in range(input_ids.shape[0])]
+
+        # Return a boolean tensor indicating which sequences should stop
+        should_stop = torch.zeros(input_ids.shape[0], dtype=torch.bool).to(input_ids.device)
+        
+        for i in range(input_ids.shape[0]):
+            _id = input_ids[i][-1].item()
+            self.current_context[i].append(_id)
+
+            # Only decode the last few tokens instead of the entire context
+            recent_ids = self.current_context[i][-self.max_context_to_check:]
+            recent_context = self.tokenizer.decode(recent_ids)
+            
+            for word in self.keywords_str:
+                if word in recent_context:
+                    should_stop[i] = True
+                    break
+        
+        # Don't return a single boolean - return a tensor indicating which sequences should stop
+        return should_stop
+
 
 
 class HFRollout(BaseRollout):
@@ -38,6 +80,10 @@ class HFRollout(BaseRollout):
         super().__init__()
         self.config = config
         self.module = module
+        self.stop_words = ["<|im_end|>", "<|endoftext|>", "assistant", "user", "_end", "_start"]
+        self.stopping_criteria = StoppingCriteriaList([
+            KeywordsStoppingCriteria(self.stop_words)
+        ])
 
     def generate_sequences(self, prompts: DataProto) -> DataProto:
         batch_size = prompts.batch.batch_size[0]
@@ -94,7 +140,10 @@ class HFRollout(BaseRollout):
                     # renormalize_logits=True,
                     output_scores=False,  # this is potentially very large
                     return_dict_in_generate=True,
-                    use_cache=True)
+                    use_cache=True,
+                    stopping_criteria=self.stopping_criteria
+                )
+                self.stopping_criteria[0].reset()
         # TODO: filter out the seq with no answers like ds-chat
         seq = output.sequences
 
