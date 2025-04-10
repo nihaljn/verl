@@ -20,7 +20,7 @@ from collections import defaultdict
 # import sys
 # sys.path.append("../../../../")
 from evaluate import boxed_response_extractor
-from external.parser import extract_answer
+from external.parser import extract_answer, find_box
 
 
 class Gsm8kRewardManager:
@@ -51,9 +51,14 @@ class Gsm8kRewardManager:
         return gt_response
 
     def _extract_response_value(self, response_str: str) -> int:
-        if self.response_extractor != "boxed":
-            raise NotImplementedError(f"Response extractor {self.response_extractor} not implemented")
-        return boxed_response_extractor(response_str)
+        # if self.response_extractor != "boxed":
+        #     raise NotImplementedError(f"Response extractor {self.response_extractor} not implemented")
+        # return boxed_response_extractor(response_str)
+        answer_str = find_box(response_str)
+        try:
+            return int(answer_str)
+        except:
+            return -999999999
 
     def __call__(self, data: DataProto, return_dict=False):
         """We will expand this function gradually based on the available datasets"""
