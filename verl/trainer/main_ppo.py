@@ -166,6 +166,9 @@ class TaskRunner:
         elif reward_manager_name == "gsm8k_custom":
             from verl.workers.reward_manager import Gsm8kRewardManager
             reward_manager_cls = Gsm8kRewardManager
+        elif reward_manager_name == "gsm8k_custom_v2":
+            from verl.workers.reward_manager import Gsm8kRewardManagerV2
+            reward_manager_cls = Gsm8kRewardManagerV2
         else:
 
             raise NotImplementedError

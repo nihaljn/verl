@@ -16,4 +16,4 @@ from .naive import NaiveRewardManager
 from .prime import PrimeRewardManager
 from .batch import BatchRewardManager
 from .dapo import DAPORewardManager
-from .gsm8k_custom import Gsm8kRewardManager
+from .gsm8k_custom import Gsm8kRewardManager, Gsm8kRewardManagerV2

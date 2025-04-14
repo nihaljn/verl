@@ -12,15 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from verl import DataProto
-from verl.utils.reward_score import _default_compute_score
-import torch
 from collections import defaultdict
+
+import torch
+from math_verify import parse, verify
 
 # import sys
 # sys.path.append("../../../../")
 from evaluate import boxed_response_extractor
 from external.parser import extract_answer, find_box
+from verl import DataProto
+from verl.utils.reward_score import _default_compute_score
 
 
 class Gsm8kRewardManager:
@@ -125,6 +127,58 @@ class Gsm8kRewardManager:
             return reward_tensor
 
 
+class Gsm8kRewardManagerV2(Gsm8kRewardManager):
+    """The reward manager.
+    """
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+
+    def find_box(self, pred_str: str):
+        if "boxed" not in pred_str:
+            return ""
+        ans = pred_str.split("boxed")[-1]
+        found = False
+        if len(ans) > 0 and ans[0] == "{":
+            stack = 1
+            a = ""
+            for c in ans[1:]:
+                if c == "{":
+                    stack += 1
+                    a += c
+                elif c == "}":
+                    stack -= 1
+                    if stack == 0:
+                        found = True
+                        break
+                    a += c
+                else:
+                    a += c
+        if not found:
+            return ""
+        return a
+
+    def compute_score(self, solution: list, gt: list) -> float:
+        correct = verify(gt, solution)
+        if correct:
+            return 1.0
+        else:
+            return -1.0
+
+    def _extract_gt(self, gt_str: str) -> list:
+        gt_line = gt_str.split("\n")[-1]
+        assert gt_line.startswith("#### "), \
+            f"Answer is not formatted correctly for '{gt_str}'"
+        gt_response = gt_line.split("#### ")[-1]
+        return parse(gt_response)
+
+    def _extract_response_value(self, response_str: str) -> list:
+        # if self.response_extractor != "boxed":
+        #     raise NotImplementedError(f"Response extractor {self.response_extractor} not implemented")
+        # return boxed_response_extractor(response_str)
+        answer_str = self.find_box(response_str)
+        return parse(answer_str)
+
 if __name__ == "__main__":
     x = {
         'batch': {
@@ -155,5 +209,5 @@ if __name__ == "__main__":
     x = [SimpleNamespace(**x)]
     from transformers import AutoTokenizer
     tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen2.5-0.5B")
-    rm = Gsm8kRewardManager(tokenizer, num_examine=1)
+    rm = Gsm8kRewardManagerV2(tokenizer, num_examine=1)
     print(rm(x))
