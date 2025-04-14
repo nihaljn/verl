@@ -196,10 +196,11 @@ class ActorRolloutRefWorker(Worker):
             else:
                 actor_module_class = AutoModelForCausalLM
 
+            attn_implementation = fsdp_config.get('attn_implementation', None)
             actor_module = actor_module_class.from_pretrained(pretrained_model_name_or_path=local_path,
                                                               torch_dtype=torch_dtype,
                                                               config=actor_model_config,
-                                                              # attn_implementation='flash_attention_2',
+                                                              attn_implementation=attn_implementation,
                                                               trust_remote_code=trust_remote_code)
 
             if use_remove_padding or self.ulysses_sequence_parallel_size > 1:
@@ -711,10 +712,11 @@ class CriticWorker(Worker):
             warnings.simplefilter("ignore")
             setattr(critic_model_config, 'classifier_dropout', 0.)
             setattr(critic_model_config, 'hidden_dropout', '0')
+            attn_implementation = fsdp_config.get('attn_implementation', None)
             critic_module = AutoModelForTokenClassification.from_pretrained(pretrained_model_name_or_path=local_path,
                                                                             torch_dtype=torch_dtype,
                                                                             config=critic_model_config,
-                                                                            # attn_implementation='flash_attention_2',
+                                                                            attn_implementation=attn_implementation,
                                                                             trust_remote_code=trust_remote_code)
 
             use_remove_padding = config.model.get('use_remove_padding', False)
@@ -978,10 +980,11 @@ class RewardModelWorker(Worker):
         with init_context(), warnings.catch_warnings():
             warnings.simplefilter("ignore")
             setattr(model_config, 'classifier_dropout', 0.)
+            attn_implementation = config.fsdp_config.get('attn_implementation', None)
             reward_module = AutoModelForTokenClassification.from_pretrained(pretrained_model_name_or_path=local_path,
                                                                             config=model_config,
                                                                             torch_dtype=torch.bfloat16,
-                                                                            # attn_implementation='flash_attention_2',
+                                                                            attn_implementation=attn_implementation,
                                                                             trust_remote_code=trust_remote_code)
 
             if config.model.get('use_remove_padding', False) or self.ulysses_sequence_parallel_size > 1:

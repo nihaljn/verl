@@ -63,6 +63,7 @@ actor_rollout_ref:
       param_offload: False
       optimizer_offload: False
       fsdp_size: -1
+      attn_implementation: "flash_attention_2"
   ref:
     fsdp_config:
       param_offload: False
