@@ -89,7 +89,7 @@ class Gsm8kRewardManager:
             response_str = self.tokenizer.decode(valid_response_ids, skip_special_tokens=True)
 
             # score
-            ground_truth = self._extract_gt(data_item.non_tensor_batch['answer'])
+            ground_truth = self._extract_gt(data_item.non_tensor_batch['extra_info']['answer'])
             response_value = self._extract_response_value(response_str)
             score = self.compute_score(response_value, ground_truth)
 

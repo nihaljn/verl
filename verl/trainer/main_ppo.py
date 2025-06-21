@@ -23,7 +23,7 @@ import ray
 from omegaconf import OmegaConf
 
 from verl.trainer.ppo.ray_trainer import RayPPOTrainer
-from verl.trainer.ppo.reward import load_reward_manager
+from verl.trainer.ppo.reward import load_reward_manager, get_custom_reward_fn
 
 
 @hydra.main(config_path="config", config_name="ppo_trainer", version_base=None)
